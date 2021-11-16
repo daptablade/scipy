@@ -31,6 +31,7 @@ __docformat__ = "restructuredtext en"
 
 _epsilon = sqrt(finfo(float).eps)
 
+_start_majoriter = False
 
 def approx_jacobian(x, func, epsilon, *args):
     """
@@ -426,6 +427,12 @@ def _minimize_slsqp(func, x0, args=(), jac=None, bounds=None,
               n1, n2, n3)
 
         if mode == 1:  # objective and constraint evaluation required
+            
+            # broadcast flag for first function evaluation of the major iteration
+            # flag is used to trigger concurrent gradient evaluation for expensive functions
+            global _start_majoriter
+            _start_majoriter = majiter > majiter_prev
+            
             fx = wrapped_fun(x)
             c = _eval_constraint(x, cons)
 
