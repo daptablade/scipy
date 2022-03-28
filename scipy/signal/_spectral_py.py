@@ -99,40 +99,38 @@ def lombscargle(x,
     First define some input parameters for the signal:
 
     >>> A = 2.
-    >>> w = 1.
-    >>> phi = 0.5 * np.pi
-    >>> nin = 1000
+    >>> w0 = 1.  # rad/sec
+    >>> nin = 150
     >>> nout = 100000
-    >>> frac_points = 0.9  # Fraction of points to select
 
-    Randomly select a fraction of an array with timesteps:
+    Randomly generate sample times:
 
-    >>> r = rng.standard_normal(nin)
-    >>> x = np.linspace(0.01, 10*np.pi, nin)
-    >>> x = x[r >= frac_points]
+    >>> x = rng.uniform(0, 10*np.pi, nin)
 
     Plot a sine wave for the selected times:
 
-    >>> y = A * np.sin(w*x+phi)
+    >>> y = A * np.cos(w0*x)
 
     Define the array of frequencies for which to compute the periodogram:
 
-    >>> f = np.linspace(0.01, 10, nout)
+    >>> w = np.linspace(0.01, 10, nout)
 
     Calculate Lomb-Scargle periodogram:
 
     >>> import scipy.signal as signal
-    >>> pgram = signal.lombscargle(x, y, f, normalize=True)
+    >>> pgram = signal.lombscargle(x, y, w, normalize=True)
 
     Now make a plot of the input data:
 
-    >>> plt.subplot(2, 1, 1)
-    >>> plt.plot(x, y, 'b+')
+    >>> fig, (ax_t, ax_w) = plt.subplots(2, 1, constrained_layout=True)
+    >>> ax_t.plot(x, y, 'b+')
+    >>> ax_t.set_xlabel('Time [s]')
 
     Then plot the normalized periodogram:
 
-    >>> plt.subplot(2, 1, 2)
-    >>> plt.plot(f, pgram)
+    >>> ax_w.plot(w, pgram)
+    >>> ax_w.set_xlabel('Angular frequency [rad/s]')
+    >>> ax_w.set_ylabel('Normalized amplitude')
     >>> plt.show()
 
     """
@@ -588,12 +586,13 @@ def csd(x, y, fs=1.0, window='hann', nperseg=None, noverlap=None, nfft=None,
         if Pxy.shape[-1] > 1:
             if average == 'median':
                 # np.median must be passed real arrays for the desired result
+                bias = _median_bias(Pxy.shape[-1])
                 if np.iscomplexobj(Pxy):
                     Pxy = (np.median(np.real(Pxy), axis=-1)
                            + 1j * np.median(np.imag(Pxy), axis=-1))
-                    Pxy /= _median_bias(Pxy.shape[-1])
                 else:
-                    Pxy = np.median(Pxy, axis=-1) / _median_bias(Pxy.shape[-1])
+                    Pxy = np.median(Pxy, axis=-1)
+                Pxy /= bias
             elif average == 'mean':
                 Pxy = Pxy.mean(axis=-1)
             else:
@@ -1026,7 +1025,7 @@ def check_NOLA(window, nperseg, noverlap, tol=1e-10):
 
 def stft(x, fs=1.0, window='hann', nperseg=256, noverlap=None, nfft=None,
          detrend=False, return_onesided=True, boundary='zeros', padded=True,
-         axis=-1):
+         axis=-1, scaling='spectrum'):
     r"""Compute the Short Time Fourier Transform (STFT).
 
     STFTs can be used as a way of quantifying the change of a
@@ -1083,6 +1082,13 @@ def stft(x, fs=1.0, window='hann', nperseg=256, noverlap=None, nfft=None,
     axis : int, optional
         Axis along which the STFT is computed; the default is over the
         last axis (i.e. ``axis=-1``).
+    scaling: {'spectrum', 'psd'}
+        The default 'spectrum' scaling allows each frequency line of `Zxx` to
+        be interpreted as a magnitude spectrum. The 'psd' option scales each
+        line to a power spectral density - it allows to calculate the signal's
+        energy by numerically integrating over ``abs(Zxx)**2``.
+
+        .. versionadded:: 1.9.0
 
     Returns
     -------
@@ -1170,10 +1176,28 @@ def stft(x, fs=1.0, window='hann', nperseg=256, noverlap=None, nfft=None,
     >>> plt.xlabel('Time [sec]')
     >>> plt.show()
 
+    Compare the energy of the signal `x` with the energy of its STFT:
+
+    >>> E_x = sum(x**2) / fs  # Energy of x
+    >>> # Calculate a two-sided STFT with PSD scaling:
+    >>> f, t, Zxx = signal.stft(x, fs, nperseg=1000, return_onesided=False,
+    ...                         scaling='psd')
+    >>> # Integrate numerically over abs(Zxx)**2:
+    >>> df, dt = f[1] - f[0], t[1] - t[0]
+    >>> E_Zxx = sum(np.sum(Zxx.real**2 + Zxx.imag**2, axis=0) * df) * dt
+    >>> # The energy is the same, but the numerical errors are quite large:
+    >>> np.isclose(E_x, E_Zxx, rtol=1e-2)
+    True
+
     """
+    if scaling == 'psd':
+        scaling = 'density'
+    elif scaling != 'spectrum':
+        raise ValueError(f"Parameter {scaling=} not in ['spectrum', 'psd']!")
+
     freqs, time, Zxx = _spectral_helper(x, x, fs, window, nperseg, noverlap,
                                         nfft, detrend, return_onesided,
-                                        scaling='spectrum', axis=axis,
+                                        scaling=scaling, axis=axis,
                                         mode='stft', boundary=boundary,
                                         padded=padded)
 
@@ -1181,7 +1205,8 @@ def stft(x, fs=1.0, window='hann', nperseg=256, noverlap=None, nfft=None,
 
 
 def istft(Zxx, fs=1.0, window='hann', nperseg=None, noverlap=None, nfft=None,
-          input_onesided=True, boundary=True, time_axis=-1, freq_axis=-2):
+          input_onesided=True, boundary=True, time_axis=-1, freq_axis=-2,
+          scaling='spectrum'):
     r"""Perform the inverse Short Time Fourier transform (iSTFT).
 
     Parameters
@@ -1237,6 +1262,11 @@ def istft(Zxx, fs=1.0, window='hann', nperseg=None, noverlap=None, nfft=None,
     freq_axis : int, optional
         Where the frequency axis of the STFT is located; the default is
         the penultimate axis (i.e. ``axis=-2``).
+    scaling: {'spectrum', 'psd'}
+        The default 'spectrum' scaling allows each frequency line of `Zxx` to
+        be interpreted as a magnitude spectrum. The 'psd' option scales each
+        line to a power spectral density - it allows to calculate the signal's
+        energy by numerically integrating over ``abs(Zxx)**2``.
 
     Returns
     -------
@@ -1424,7 +1454,12 @@ def istft(Zxx, fs=1.0, window='hann', nperseg=None, noverlap=None, nfft=None,
     if np.result_type(win, xsubs) != xsubs.dtype:
         win = win.astype(xsubs.dtype)
 
-    xsubs *= win.sum()  # This takes care of the 'spectrum' scaling
+    if scaling == 'spectrum':
+        xsubs *= win.sum()
+    elif scaling == 'psd':
+        xsubs *= np.sqrt(fs * sum(win**2))
+    else:
+        raise ValueError(f"Parameter {scaling=} not in ['spectrum', 'psd']!")
 
     # Construct the output from the ifft segments
     # This loop could perhaps be vectorized/strided somehow...
@@ -1652,6 +1687,7 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=None, noverlap=None,
         segments, so that all of the signal is included in the output.
         Defaults to `False`. Padding occurs after boundary extension, if
         `boundary` is not `None`, and `padded` is `True`.
+
     Returns
     -------
     freqs : ndarray

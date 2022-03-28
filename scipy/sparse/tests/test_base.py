@@ -23,7 +23,7 @@ import operator
 import platform
 import itertools
 import sys
-from distutils.version import LooseVersion
+from scipy._lib import _pep440
 
 import numpy as np
 from numpy import (arange, zeros, array, dot, asarray,
@@ -1570,10 +1570,10 @@ class _TestCommon:
         B = self.spmatrix(A)
 
         for exponent in [0,1,2,3]:
-            assert_array_equal(
-                (B**exponent).toarray(),
-                np.linalg.matrix_power(A, exponent)
-            )
+            ret_sp = B**exponent
+            ret_np = np.linalg.matrix_power(A, exponent)
+            assert_array_equal(ret_sp.toarray(), ret_np)
+            assert_equal(ret_sp.dtype, ret_np.dtype)
 
         # invalid exponents
         for exponent in [-1, 2.2, 1 + 3j]:
@@ -4348,6 +4348,13 @@ class TestDIA(sparse_test_class(getset=False, slicing=False, slicing_assign=Fals
     def test_getnnz_axis(self):
         pass
 
+    def test_convert_gh14555(self):
+        # regression test for gh-14555
+        m = dia_matrix(([[1, 1, 0]], [-1]), shape=(4, 2))
+        expected = m.toarray()
+        assert_array_equal(m.tocsc().toarray(), expected)
+        assert_array_equal(m.tocsr().toarray(), expected)
+
 
 TestDIA.init_class()
 
@@ -4814,7 +4821,7 @@ def cases_64bit():
                 if bool(msg):
                     marks += [pytest.mark.skip(reason=msg)]
 
-                if LooseVersion(pytest.__version__) >= LooseVersion("3.6.0"):
+                if _pep440.parse(pytest.__version__) >= _pep440.Version("3.6.0"):
                     markers = getattr(method, 'pytestmark', [])
                     for mark in markers:
                         if mark.name in ('skipif', 'skip', 'xfail', 'xslow'):

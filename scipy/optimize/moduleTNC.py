@@ -7,8 +7,12 @@ from . import _moduleTNC
 
 
 __all__ = [  # noqa: F822
-    'minimize',
+
 ]
+
+
+def __dir__():
+    return __all__
 
 
 def __getattr__(name):

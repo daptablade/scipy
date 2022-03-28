@@ -8,7 +8,7 @@ from . import _stats_py
 
 __all__ = [  # noqa: F822
     'find_repeats', 'gmean', 'hmean', 'mode', 'tmean', 'tvar',
-    'tmin', 'tmax', 'tstd', 'tsem', 'moment', 'variation',
+    'tmin', 'tmax', 'tstd', 'tsem', 'moment',
     'skew', 'kurtosis', 'describe', 'skewtest', 'kurtosistest',
     'normaltest', 'jarque_bera', 'itemfreq',
     'scoreatpercentile', 'percentileofscore',
@@ -29,7 +29,19 @@ __all__ = [  # noqa: F822
     'tiecorrect', 'ranksums', 'kruskal', 'friedmanchisquare',
     'rankdata',
     'combine_pvalues', 'wasserstein_distance', 'energy_distance',
-    'brunnermunzel', 'alexandergovern'
+    'brunnermunzel', 'alexandergovern', 'gcd', 'namedtuple', 'array',
+    'ma', 'cdist', 'check_random_state', 'MapWrapper',
+    'rng_integers', 'float_factorial', 'linalg', 'distributions',
+    'mstats_basic', 'make_dataclass', 'ModeResult', 'DescribeResult',
+    'SkewtestResult', 'KurtosistestResult', 'NormaltestResult',
+    'Jarque_beraResult', 'HistogramResult', 'CumfreqResult',
+    'RelfreqResult', 'SigmaclipResult', 'F_onewayResult',
+    'AlexanderGovernResult', 'AlexanderGovernConstantInputWarning',
+    'SpearmanrResult', 'PointbiserialrResult', 'KendalltauResult',
+    'WeightedTauResult', 'MGCResult', 'Ttest_1sampResult', 'Ttest_indResult',
+    'Ttest_relResult', 'Power_divergenceResult', 'KstestResult',
+    'Ks_2sampResult', 'RanksumsResult', 'KruskalResult',
+    'FriedmanchisquareResult', 'BrunnerMunzelResult', 'RepeatedResults'
 ]
 
 
