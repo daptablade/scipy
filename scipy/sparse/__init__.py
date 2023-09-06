@@ -5,6 +5,12 @@ Sparse matrices (:mod:`scipy.sparse`)
 
 .. currentmodule:: scipy.sparse
 
+.. toctree::
+   :hidden:
+
+   sparse.csgraph
+   sparse.linalg
+
 SciPy 2-D sparse array package for numeric data.
 
 .. note::
@@ -48,6 +54,7 @@ Sparse array classes
    dia_array - Sparse array with DIAgonal storage
    dok_array - Dictionary Of Keys based sparse array
    lil_array - Row-based list of lists sparse array
+   sparray - Sparse array base class
 
 Sparse matrix classes
 ---------------------
@@ -67,6 +74,13 @@ Sparse matrix classes
 Functions
 ---------
 
+Building sparse arrays:
+
+.. autosummary::
+   :toctree: generated/
+
+   diags_array - Return a sparse array from diagonals
+
 Building sparse matrices:
 
 .. autosummary::
@@ -81,7 +95,8 @@ Building sparse matrices:
    block_diag - Build a block diagonal sparse matrix
    tril - Lower triangular portion of a matrix in sparse format
    triu - Upper triangular portion of a matrix in sparse format
-   bmat - Build a sparse matrix from sparse sub-blocks
+   block - Build a sparse array from sub-blocks
+   bmat - Build a sparse matrix from sub-blocks
    hstack - Stack sparse matrices horizontally (column wise)
    vstack - Stack sparse matrices vertically (row wise)
    rand - Random values in a given shape
@@ -273,11 +288,8 @@ from ._dia import *
 from ._bsr import *
 from ._construct import *
 from ._extract import *
+from ._matrix import spmatrix
 from ._matrix_io import *
-
-from ._arrays import (
-    csr_array, csc_array, lil_array, dok_array, coo_array, dia_array, bsr_array
-)
 
 # For backward compatibility with v0.19.
 from . import csgraph
